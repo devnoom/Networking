@@ -18,7 +18,7 @@ enum NetworkError: Error {
 class NetworkService {
     static var networkService = NetworkService()
     
-    private init(){}
+    public init(){}
     func getData<T: Decodable>(urlString: String, comletion: @escaping (Result<T,Error>) ->(Void)) {
         let url = URL(string: urlString)!
 
