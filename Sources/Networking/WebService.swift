@@ -5,31 +5,50 @@
 //  Created by MacBook Air on 02.05.24.
 //
 
+
+
 import Foundation
 
-public enum NetworkError: Error {
-    case badRequest
-    case decodingError
+enum NetworkError: Error {
+    case decodeError
+    case wrongResponse
+    case wrongStatusCode(code: Int)
 }
 
-public class WebService {
+class NetworkService {
+    static var networkService = NetworkService()
     
-    public init() { }
-    
-    public func fetch<T: Codable>(url: URL, parse: @escaping (Data) -> T?, completion: @escaping (Result<T?, NetworkError>) -> Void)  {
-        
-        URLSession.shared.dataTask(with: url) { data, response, error in
-            guard let data = data, error == nil,
-                  (response as? HTTPURLResponse)?.statusCode == 200
-            else {
-                completion(.failure(.decodingError))
+    private init(){}
+    func getData<T: Decodable>(urlString: String, comletion: @escaping (Result<T,Error>) ->(Void)) {
+        let url = URL(string: urlString)!
+
+        URLSession.shared.dataTask(with: URLRequest(url: url)) { data, response, error in
+            
+            if let error {
+                print(error.localizedDescription)
+            }
+            
+            guard let response = response as? HTTPURLResponse else {
                 return
             }
-            let result = parse(data)
-            completion(.success(result))
             
+            guard (200...299).contains(response.statusCode) else {
+                print("wrong response")
+                return
+            }
+            guard let data else { return }
+
+            do {
+                let decoder = JSONDecoder()
+                let object = try decoder.decode(T.self, from: data)
+                DispatchQueue.main.async {
+                    comletion(.success(object))
+                }
+            } catch {
+                comletion(.failure(NetworkError.decodeError))
+            }
         }.resume()
-        
     }
-    
 }
+
+
