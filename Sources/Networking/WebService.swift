@@ -9,17 +9,17 @@
 
 import Foundation
 
-enum NetworkError: Error {
+public enum NetworkError: Error {
     case decodeError
     case wrongResponse
     case wrongStatusCode(code: Int)
 }
 
-class NetworkService {
+public class NetworkService {
     static var networkService = NetworkService()
     
     public init(){}
-    func getData<T: Decodable>(urlString: String, comletion: @escaping (Result<T,Error>) ->(Void)) {
+    public func getData<T: Decodable>(urlString: String, comletion: @escaping (Result<T,Error>) ->(Void)) {
         let url = URL(string: urlString)!
 
         URLSession.shared.dataTask(with: URLRequest(url: url)) { data, response, error in
