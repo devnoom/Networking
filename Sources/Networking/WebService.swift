@@ -5,50 +5,41 @@
 //  Created by MacBook Air on 02.05.24.
 //
 
-
-
 import Foundation
 
-public enum NetworkError: Error {
-    case decodeError
-    case wrongResponse
-    case wrongStatusCode(code: Int)
-}
-
-public class NetworkService {
-    public static var shared = NetworkService()
+public class NetworkingService {
     
-    public init(){}
-    public func getData<T: Decodable>(urlString: String, comletion: @escaping (Result<T,Error>) ->(Void)) {
-        let url = URL(string: urlString)!
-
-        URLSession.shared.dataTask(with: URLRequest(url: url)) { data, response, error in
-            
-            if let error {
-                print(error.localizedDescription)
-            }
-            
-            guard let response = response as? HTTPURLResponse else {
+    public static let shared = NetworkingService()
+    
+    public init() { }
+    
+    public func fetchData<T: Decodable>(from url: URL, completion: @escaping (Result<T, Error>) -> Void) {
+        URLSession.shared.dataTask(with: url) { data, response, error in
+            if let error = error {
+                completion(.failure(error))
                 return
             }
             
-            guard (200...299).contains(response.statusCode) else {
-                print("wrong response")
+            guard let httpResponse = response as? HTTPURLResponse, 200..<300 ~= httpResponse.statusCode else {
+                completion(.failure(NSError(domain: "Invalid response", code: 0, userInfo: nil)))
                 return
             }
-            guard let data else { return }
-
+            
+            guard let data = data else {
+                completion(.failure(NSError(domain: "No data", code: 1, userInfo: nil)))
+                return
+            }
+            
             do {
-                let decoder = JSONDecoder()
-                let object = try decoder.decode(T.self, from: data)
+                let decodedData = try JSONDecoder().decode(T.self, from: data)
                 DispatchQueue.main.async {
-                    comletion(.success(object))
+                    completion(.success(decodedData))
                 }
             } catch {
-                comletion(.failure(NetworkError.decodeError))
+                DispatchQueue.main.async {
+                    completion(.failure(error))
+                }
             }
         }.resume()
     }
 }
-
-
